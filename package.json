@@ -1,0 +1,45 @@
+{
+  "name": "actions-aws-ssm-get-by-path",
+  "version": "1.0.0",
+  "private": true,
+  "description": "",
+  "main": "lib/main.js",
+  "scripts": {
+    "build": "tsc",
+    "format": "prettier --write **/*.ts",
+    "format-check": "prettier --check **/*.ts",
+    "lint": "eslint src/**/*.ts",
+    "package": "ncc build --source-map --license licenses.txt",
+    "all": "npm run build && npm run format && npm run lint && npm run package"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/source-ip/actions-aws-ssm-get-by-path.git"
+  },
+  "keywords": [
+    "actions",
+    "node",
+    "aws",
+    "ssm"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@actions/core": "^1.6.0",
+    "@aws-sdk/client-ssm": "^3.42.0",
+    "@aws-sdk/types": "^3.40.0"
+  },
+  "devDependencies": {
+    "@types/node": "^16.11.10",
+    "@typescript-eslint/parser": "^5.4.0",
+    "@vercel/ncc": "^0.32.0",
+    "eslint": "^7.14.0",
+    "eslint-plugin-github": "^4.3.5",
+    "eslint-plugin-jest": "^25.3.0",
+    "jest": "^27.3.1",
+    "js-yaml": "^4.1.0",
+    "prettier": "2.4.1",
+    "ts-jest": "^27.0.7",
+    "typescript": "^4.5.2"
+  }
+}

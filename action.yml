@@ -1,0 +1,34 @@
+name: AWS SSM Get by Path
+description: Get AWS SSM parameters by path
+inputs:
+  paths:
+    description: Paths to retrieve parameters by. Subsequent paths should be comma delimited
+    required: true
+  recursive:
+    description: Get parameters recursively
+    required: true
+    default: false
+  decrypt:
+    description: Indicates if retrieved parameters should be decrypted
+    required: true
+    default: false
+  save-to-environment:
+    description: Indicates if the retrieved parameters should also be exported as environment variables
+    required: true
+    default: false
+  prefix:
+    description: Prefix, if any, to apply before exporting environment variables
+    required: false
+  file:
+    description: Environment variable file to output to
+    required: false
+  delimiter:
+    description: Delimiter to use for subkeys
+    required: true
+    default: _
+outputs:
+  ssm-params:
+    description: The retrieved parameters as a JSON object
+runs:
+  using: 'node12'
+  main: 'dist/index.js'
