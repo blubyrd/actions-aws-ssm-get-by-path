@@ -49,11 +49,21 @@ function run() {
             const delimiter = core.getInput('delimiter', { required: true });
             const params = {};
             for (const path of paths) {
-                const result = yield ssm.send(new client_ssm_1.GetParametersByPathCommand({
-                    Path: path,
-                    Recursive: JSON.parse(core.getInput('recursive', { required: true })),
-                    WithDecryption: JSON.parse(core.getInput('decrypt', { required: true }))
-                }));
+                let NextToken;
+                let result;
+                while (true) {
+                    result = yield ssm.send(new client_ssm_1.GetParametersByPathCommand({
+                        Path: path,
+                        Recursive: JSON.parse(core.getInput('recursive', { required: true })),
+                        WithDecryption: JSON.parse(core.getInput('decrypt', { required: true })),
+                        NextToken,
+                        MaxResults: 10
+                    }));
+                    NextToken = result.NextToken;
+                    if (!NextToken) {
+                        break;
+                    }
+                }
                 if (saveToEnvironment) {
                     // eslint-disable-next-line i18n-text/no-en
                     core.startGroup(`Exporting from Path ${path}`);

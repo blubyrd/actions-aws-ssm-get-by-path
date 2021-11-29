@@ -1,5 +1,5 @@
 import * as core from '@actions/core'
-import {GetParametersByPathCommand, SSMClient} from '@aws-sdk/client-ssm'
+import {GetParametersByPathCommand, GetParametersByPathCommandOutput, SSMClient} from '@aws-sdk/client-ssm'
 import {writeFileSync} from 'fs'
 
 async function run(): Promise<void> {
@@ -15,13 +15,25 @@ async function run(): Promise<void> {
     const params = {} as any
 
     for (const path of paths) {
-      const result = await ssm.send(
-        new GetParametersByPathCommand({
-          Path: path,
-          Recursive: JSON.parse(core.getInput('recursive', {required: true})),
-          WithDecryption: JSON.parse(core.getInput('decrypt', {required: true}))
-        })
-      )
+      let NextToken: string | undefined
+      let result: GetParametersByPathCommandOutput
+      while (true) {
+        result = await ssm.send(
+          new GetParametersByPathCommand({
+            Path: path,
+            Recursive: JSON.parse(core.getInput('recursive', {required: true})),
+            WithDecryption: JSON.parse(
+              core.getInput('decrypt', {required: true})
+            ),
+            NextToken,
+            MaxResults: 10
+          })
+        )
+        NextToken = result.NextToken
+        if (!NextToken) {
+          break
+        }
+      }
 
       if (saveToEnvironment) {
         // eslint-disable-next-line i18n-text/no-en
