@@ -1,5 +1,5 @@
 import * as core from '@actions/core'
-import {GetParametersByPathCommand, SSMClient, GetParametersByPathCommandOutput} from '@aws-sdk/client-ssm'
+import {GetParametersByPathCommand, SSMClient} from '@aws-sdk/client-ssm'
 import {writeFileSync} from 'fs'
 
 async function run(): Promise<void> {
@@ -13,54 +13,47 @@ async function run(): Promise<void> {
     const delimiter = core.getInput('delimiter', {required: true})
 
     const params = {} as any
+    let nextToken: string | undefined
 
     for (const path of paths) {
-      let NextToken: string | undefined
-      let result: GetParametersByPathCommandOutput
-      while (true) {
-        result = await ssm.send(
-          new GetParametersByPathCommand({
-            Path: path,
-            Recursive: JSON.parse(core.getInput('recursive', {required: true})),
-            WithDecryption: JSON.parse(
-              core.getInput('decrypt', {required: true})
-            ),
-            NextToken,
-            MaxResults: 10
-          })
-        )
-        core.info(`NextToken ${result.NextToken}`)
-        NextToken = result.NextToken
-        if (!NextToken) {
-          break
-        }
-      }
+      const request = new GetParametersByPathCommand({
+        Path: path,
+        Recursive: JSON.parse(core.getInput('recursive', {required: true})),
+        WithDecryption: JSON.parse(core.getInput('decrypt', {required: true}))
+      })
+      do {
+        const result = await ssm.send(request)
 
-      if (saveToEnvironment) {
-        // eslint-disable-next-line i18n-text/no-en
-        core.startGroup(`Exporting from Path ${path}`)
-      }
-
-      for (const parameter of result.Parameters!) {
-        let name = parameter.Name?.replace(path, '')
-          .toUpperCase()
-          .replace(/\//g, delimiter)
-          .replace(/-/g, '_')
-        name = `${prefix}${name}`
-        params[name] = parameter.Value
         if (saveToEnvironment) {
           // eslint-disable-next-line i18n-text/no-en
-          core.info(`Exporting variable ${name}`)
-          core.exportVariable(name, parameter.Value)
-          if (parameter.Value && parameter.Type === 'SecureString') {
-            core.setSecret(parameter.Value)
+          core.startGroup(`Exporting from Path ${path}`)
+        }
+
+        for (const parameter of result.Parameters!) {
+          let name = parameter?.Name?.replace(path, '')
+            .toUpperCase()
+            .replace(/\//g, delimiter)
+            .replace(/-/g, '_')
+          name = `${prefix}${name}`
+          params[name] = parameter.Value
+          if (saveToEnvironment) {
+            // eslint-disable-next-line i18n-text/no-en
+            core.info(`Exporting variable ${name}`)
+            core.exportVariable(name, parameter.Value)
+            if (parameter.Value && parameter.Type === 'SecureString') {
+              core.setSecret(parameter.Value)
+            }
           }
         }
-      }
 
-      if (saveToEnvironment) {
-        core.endGroup()
-      }
+        if (saveToEnvironment) {
+          core.endGroup()
+        }
+        nextToken = result.NextToken
+        core.info(`nextToken ${result.NextToken}`)
+        request.input.NextToken = nextToken
+        core.info(`nextToken ${nextToken}`)
+      } while (nextToken)
     }
 
     const fileName = core.getInput('file', {required: false})

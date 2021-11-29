@@ -48,43 +48,40 @@ function run() {
             const prefix = core.getInput('prefix') || '';
             const delimiter = core.getInput('delimiter', { required: true });
             const params = {};
+            let nextToken;
             for (const path of paths) {
-                let NextToken;
-                let result;
-                while (true) {
-                    result = yield ssm.send(new client_ssm_1.GetParametersByPathCommand({
-                        Path: path,
-                        Recursive: JSON.parse(core.getInput('recursive', { required: true })),
-                        WithDecryption: JSON.parse(core.getInput('decrypt', { required: true })),
-                        NextToken,
-                        MaxResults: 10
-                    }));
-                    core.info(`NextToken ${result.NextToken}`);
-                    NextToken = result.NextToken;
-                    if (!NextToken) {
-                        break;
-                    }
-                }
-                if (saveToEnvironment) {
-                    // eslint-disable-next-line i18n-text/no-en
-                    core.startGroup(`Exporting from Path ${path}`);
-                }
-                for (const parameter of result.Parameters) {
-                    let name = (_a = parameter.Name) === null || _a === void 0 ? void 0 : _a.replace(path, '').toUpperCase().replace(/\//g, delimiter).replace(/-/g, '_');
-                    name = `${prefix}${name}`;
-                    params[name] = parameter.Value;
+                const request = new client_ssm_1.GetParametersByPathCommand({
+                    Path: path,
+                    Recursive: JSON.parse(core.getInput('recursive', { required: true })),
+                    WithDecryption: JSON.parse(core.getInput('decrypt', { required: true }))
+                });
+                do {
+                    const result = yield ssm.send(request);
                     if (saveToEnvironment) {
                         // eslint-disable-next-line i18n-text/no-en
-                        core.info(`Exporting variable ${name}`);
-                        core.exportVariable(name, parameter.Value);
-                        if (parameter.Value && parameter.Type === 'SecureString') {
-                            core.setSecret(parameter.Value);
+                        core.startGroup(`Exporting from Path ${path}`);
+                    }
+                    for (const parameter of result.Parameters) {
+                        let name = (_a = parameter === null || parameter === void 0 ? void 0 : parameter.Name) === null || _a === void 0 ? void 0 : _a.replace(path, '').toUpperCase().replace(/\//g, delimiter).replace(/-/g, '_');
+                        name = `${prefix}${name}`;
+                        params[name] = parameter.Value;
+                        if (saveToEnvironment) {
+                            // eslint-disable-next-line i18n-text/no-en
+                            core.info(`Exporting variable ${name}`);
+                            core.exportVariable(name, parameter.Value);
+                            if (parameter.Value && parameter.Type === 'SecureString') {
+                                core.setSecret(parameter.Value);
+                            }
                         }
                     }
-                }
-                if (saveToEnvironment) {
-                    core.endGroup();
-                }
+                    if (saveToEnvironment) {
+                        core.endGroup();
+                    }
+                    nextToken = result.NextToken;
+                    core.info(`nextToken ${result.NextToken}`);
+                    request.input.NextToken = nextToken;
+                    core.info(`nextToken ${nextToken}`);
+                } while (nextToken);
             }
             const fileName = core.getInput('file', { required: false });
             core.info(fileName);
