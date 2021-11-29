@@ -25,8 +25,7 @@ async function run(): Promise<void> {
             WithDecryption: JSON.parse(
               core.getInput('decrypt', {required: true})
             ),
-            NextToken,
-            MaxResults: 10
+            NextToken
           })
         )
         NextToken = result.NextToken
