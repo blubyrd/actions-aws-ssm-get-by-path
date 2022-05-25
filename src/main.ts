@@ -5,7 +5,9 @@ import {writeFileSync} from 'fs'
 async function run(): Promise<void> {
   try {
     const ssm = new SSMClient({})
-    const paths = core.getInput('paths', {required: true}).split(',')
+    const paths = core.getInput('paths', {required: true}).split(',').map(function (value) {
+      return value.trim();
+    });
     const saveToEnvironment: Boolean = JSON.parse(
       core.getInput('save-to-environment', {required: true})
     )
